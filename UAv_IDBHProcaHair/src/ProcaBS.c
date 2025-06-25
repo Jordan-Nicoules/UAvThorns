@@ -170,9 +170,14 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
   for (int jj = 0; jj < Ntheta; jj++) {
     for (int i = 0; i < NX; i++) {
 
-      CCTK_INT j, jm1, jm2, jp1, jp2, jp3, jp4;
+      CCTK_INT j, jm1, jm2, jm3, jm4, jp1, jp2, jp3, jp4;
       /* let's use the fact that the solution is axi-symmetric (and that
-         theta[0] = 0) for the boundary points in j */
+         theta[0] = 0) for the boundary points in j 
+         WARNING: Be careful with symmetries, they may not apply everywhere!
+         
+         TODO: Put warning on the number of theta points?
+         For logic of cases below, Ntheta >= 9 I think, but in practice, what matters is probably Ntheta >= 5.
+      */
       if (jj == 0) {
         j   = jj;
         jp1 = jj+1;
@@ -181,6 +186,8 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
         jp4 = jj+4;
         jm1 = jj+1;
         jm2 = jj+2;
+        jm3 = jj+3; // Shouldn't be needed/used here, but define just in case
+        jm4 = jj+4; // Shouldn't be needed/used here, but define just in case
       } else if (jj == 1) {
         j   = jj;
         jp1 = jj+1;
@@ -189,46 +196,78 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
         jp4 = jj+4;
         jm1 = jj-1;
         jm2 = jj;
-      } else if (jj == Ntheta - 4) { // Shouldn't be needed here, but just in case
+        jm3 = jj+1; // Shouldn't be needed/used here, but define just in case
+        jm4 = jj+2; // Shouldn't be needed/used here, but define just in case
+      } else if (jj == 2) { // Special case shouldn't be needed here, but just in case
         j   = jj;
-        jm1 = jj-1;
-        jm2 = jj-2;
         jp1 = jj+1;
         jp2 = jj+2;
         jp3 = jj+3;
-        jp4 = jj+2; 
-      } else if (jj == Ntheta - 3) { // Shouldn't be needed here, but just in case
+        jp4 = jj+4;
+        jm1 = jj-1;
+        jm2 = jj-2;
+        jm3 = jj-1; // Shouldn't be needed/used here, but define just in case
+        jm4 = jj;   // Shouldn't be needed/used here, but define just in case
+      } else if (jj == 3) { // Special case shouldn't be needed here, but just in case
+        j   = jj;
+        jp1 = jj+1;
+        jp2 = jj+2;
+        jp3 = jj+3;
+        jp4 = jj+4;
+        jm1 = jj-1;
+        jm2 = jj-2;
+        jm3 = jj-3; // Shouldn't be needed/used here, but define just in case
+        jm4 = jj-2; // Shouldn't be needed/used here, but define just in case
+      } else if (jj == Ntheta - 4) { // Special case shouldn't be needed here, but just in case
         j   = jj;
         jm1 = jj-1;
         jm2 = jj-2;
+        jm3 = jj-3;
+        jm4 = jj-4;
         jp1 = jj+1;
         jp2 = jj+2;
-        jp3 = jj+1;
-        jp4 = jj; 
+        jp3 = jj+3; // Shouldn't be needed/used here, but define just in case
+        jp4 = jj+2; // Shouldn't be needed/used here, but define just in case 
+      } else if (jj == Ntheta - 3) { // Special case shouldn't be needed here, but just in case
+        j   = jj;
+        jm1 = jj-1;
+        jm2 = jj-2;
+        jm3 = jj-3;
+        jm4 = jj-4;
+        jp1 = jj+1;
+        jp2 = jj+2;
+        jp3 = jj+1; // Shouldn't be needed/used here, but define just in case
+        jp4 = jj;   // Shouldn't be needed/used here, but define just in case
       } else if (jj == Ntheta - 2) {
         j   = jj;
         jm1 = jj-1;
         jm2 = jj-2;
+        jm3 = jj-3;
+        jm4 = jj-4;
         jp1 = jj+1;
         jp2 = jj;
-        jp3 = jj-1; // Shouldn't be needed here, but just in case
-        jp4 = jj-2; // Shouldn't be needed here, but just in case
+        jp3 = jj-1; // Shouldn't be needed/used here, but define just in case
+        jp4 = jj-2; // Shouldn't be needed/used here, but define just in case
       } else if (jj == Ntheta - 1) {
         j   = jj;
         jm1 = jj-1;
         jm2 = jj-2;
+        jm3 = jj-3;
+        jm4 = jj-4;
         jp1 = jj-1;
         jp2 = jj-2;
-        jp3 = jj-3; // Shouldn't be needed here, but just in case
-        jp4 = jj-4; // Shouldn't be needed here, but just in case
+        jp3 = jj-3; // Shouldn't be needed/used here, but define just in case
+        jp4 = jj-4; // Shouldn't be needed/used here, but define just in case
       } else {
         j   = jj;
         jp1 = jj+1;
         jp2 = jj+2;
-        jp3 = jj+3; // Shouldn't be needed here, but just in case
-        jp4 = jj+4; // Shouldn't be needed here, but just in case
+        jp3 = jj+3; // Shouldn't be needed/used here, but define just in case
+        jp4 = jj+4; // Shouldn't be needed/used here, but define just in case
         jm1 = jj-1;
         jm2 = jj-2;
+        jm3 = jj-3; // Shouldn't be needed/used here, but define just in case
+        jm4 = jj-4; // Shouldn't be needed/used here, but define just in case
       }
 
       const CCTK_INT ind    = i + j*NX;
@@ -243,6 +282,8 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
 
       const CCTK_INT indjm1 = i + jm1*NX;
       const CCTK_INT indjm2 = i + jm2*NX;
+      const CCTK_INT indjm3 = i + jm3*NX;
+      const CCTK_INT indjm4 = i + jm4*NX;
       const CCTK_INT indjp1 = i + jp1*NX;
       const CCTK_INT indjp2 = i + jp2*NX;
       const CCTK_INT indjp3 = i + jp3*NX;
@@ -262,25 +303,35 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
       /* const CCTK_REAL lth = theta[j]; */
       /* printf("X[%3d] = %lf\n", i, lX); */
 
-
+      // WARNING/TODO (rotating stars): Do we need to be careful of theta derivatives, like for V?
       // 1st derivative with 4th order accuracy (central stencils)
       const CCTK_REAL Wbar_th = (-Wbar_in[indjp2] + 8 * Wbar_in[indjp1] - 8 * Wbar_in[indjm1] + Wbar_in[indjm2]) *
-        oodth12;
-
+      oodth12;
+      
+      // WARNING/TODO (rotating stars): Do we need to be careful of theta derivatives, like for V?
       // 1st derivative with 4th order accuracy (central stencils)
       const CCTK_REAL H3_th = (-H3_in[indjp2] + 8 * H3_in[indjp1] - 8 * H3_in[indjm1] + H3_in[indjm2]) *
         oodth12;
 
-      // TODO: Check with symmetries of V, especially at theta=pi/2
-      // Apparently dV/dth (th=0) != 0, which can't be captured by centered finite differences and th=0 symmetry
+      // Symmetries of V on the axis and/or the equator can vary (theta = 0, pi/2 resp.).
+      // In particular, it can occur that dV/dth != 0, which can't be captured by centered finite differences and theta symmetry.
+      // Since different systems have different symmetries, we resort to non-symmetric stencils in any case
       CCTK_REAL V_th;
       if (jj==0) {
         // 1st derivative with 4th order accuracy (forward stencils)
-        V_th = (- 25 * V_in[ind] + 48 * V_in[indjp1] - 36 * V_in[indjp2] + 16 * V_in[indjp3] - 3 * V_in[indjp4]) *
+        V_th = (- 25 * V_in[ind]    + 48 * V_in[indjp1] - 36 * V_in[indjp2] + 16 * V_in[indjp3] - 3 * V_in[indjp4]) *
           oodth12;
       } else if (jj==1) {
         // 1st derivative with 4th order accuracy (mixed stencils)
-        V_th = (- 3 * V_in[indjm1] - 10 * V_in[ind] + 18 * V_in[indjp1] - 6 * V_in[indjp2] + V_in[indjp3]) * 
+        V_th = (-  3 * V_in[indjm1] - 10 * V_in[ind]    + 18 * V_in[indjp1] -  6 * V_in[indjp2] +     V_in[indjp3]) * 
+          oodth12;
+      } else if (jj==Ntheta-2) {
+        // 1st derivative with 4th order accuracy (mixed stencils)
+        V_th = (   3 * V_in[indjp1] + 10 * V_in[ind]    - 18 * V_in[indjm1] +  6 * V_in[indjm2] -     V_in[indjm3]) * 
+          oodth12;
+      } else if (jj==Ntheta-1) {
+        // 1st derivative with 4th order accuracy (backward stencils)
+        V_th = (  25 * V_in[ind]    - 48 * V_in[indjm1] + 36 * V_in[indjm2] - 16 * V_in[indjm3] + 3 * V_in[indjm4]) *
           oodth12;
       } else {
         // 1st derivative with 4th order accuracy (centered stencils)
