@@ -22,6 +22,13 @@ void UAv_IDBHProcaHair(CCTK_ARGUMENTS)
   DECLARE_CCTK_PARAMETERS;
 
   /*
+    WARNING/TODO (?): The implementation was built with m=1 in mind, and hasn't been tested for other m.
+                      There might be changes related to symmetries/regularity conditions (maybe?).
+                      Also, some features implemented for ProcaBS may be adapted here 
+                      (Amu_z_sym_is_odd, computation of j indices, non-centered theta derivatives,...)
+  */
+
+  /*
   const CCTK_REAL dxsq = CCTK_DELTA_SPACE(0)*CCTK_DELTA_SPACE(0);
   const CCTK_REAL dysq = CCTK_DELTA_SPACE(1)*CCTK_DELTA_SPACE(1);
   const CCTK_REAL dzsq = CCTK_DELTA_SPACE(2)*CCTK_DELTA_SPACE(2);
@@ -294,11 +301,13 @@ void UAv_IDBHProcaHair(CCTK_ARGUMENTS)
         oodth12;
 
       // 1st derivative with 4th order accuracy (central stencils)
+      // WARNING/TODO: Do we need to be careful with theta derivatives, like for V? Depending on m?
       const CCTK_REAL H3_th = (-H3_in[indjp2] + 8 * H3_in[indjp1] - 8 * H3_in[indjm1] + H3_in[indjm2]) *
         oodth12;
 
 
       // Apparently dV/dth (th=0) != 0, which can't be captured by centered finite differences and th=0 symmetry
+      // WARNING/TODO: Like for Proca stars, this (and mixed derivatives below) may need to be adapted also at theta=pi/2, depending on l, m?
       CCTK_REAL V_th;
       if (jj==0) {
         // 1st derivative with 4th order accuracy (forward stencils)

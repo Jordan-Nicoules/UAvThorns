@@ -26,11 +26,6 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
   // TODO: Remove when proof-tested.
   // What needs to be checked if mostly the behavior/regularity of W and K_ij
   
-  // TODO: Remove this warning when the situation has been corrected.
-  CCTK_WARN(1,  "This code relies on some symmetry assumptions for the equatorial plane "
-                "which are known to fail in some cases (e.g. m=0 prolate star). "
-                "Use at your own risks!");
-
   // TODO: Is there a way to write the Proca fields in a regular way 
   //       (without 1/rr in particular, but also dealing with the axis...)
   //       like for the scalar case?
@@ -222,12 +217,11 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
       // /!\ Make sure that the stencils here are consistent with min_theta_points defined above.
 
 
-      // WARNING/TODO (rotating stars): Do we need to be careful of theta derivatives, like for V?
       // 1st derivative with 4th order accuracy (central stencils)
       const CCTK_REAL Wbar_th = (-Wbar_in[indjp2] + 8 * Wbar_in[indjp1] - 8 * Wbar_in[indjm1] + Wbar_in[indjm2]) *
       oodth12;
       
-      // WARNING/TODO (rotating stars): Do we need to be careful of theta derivatives, like for V?
+      // WARNING/TODO (rotating stars): Do we need to be careful with theta derivatives, like for V? Depending on m?
       // 1st derivative with 4th order accuracy (central stencils)
       const CCTK_REAL H3_th = (-H3_in[indjp2] + 8 * H3_in[indjp1] - 8 * H3_in[indjm1] + H3_in[indjm2]) *
         oodth12;
@@ -479,9 +473,15 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
 
   // Second loop on z<0 half-space (completion by symmetry)
 
-  // TODO: check parity and conventions
-  // Even parity: F1, F2, F0, W, H1, H3, V and their r derivatives
-  // Odd parity:  H2, and theta derivatives of even functions
+  // Even parity: F1, F2, F0, W; r derivatives of even functions; theta derivatives of odd functions
+  // Odd parity:  r derivatives of odd functions; theta derivatives of even functions
+  // A even (default): H1, H3 and V are even, and H2 is odd.
+  // A odd           : H1, H3 and V are  odd, and H2 is even.
+
+  const CCTK_INT H1_z_sign = Amu_z_sym_is_odd ? -1 : +1;
+  const CCTK_INT H2_z_sign = Amu_z_sym_is_odd ? +1 : -1;
+  const CCTK_INT H3_z_sign = Amu_z_sym_is_odd ? -1 : +1;
+  const CCTK_INT  V_z_sign = Amu_z_sym_is_odd ? -1 : +1;
 
   for (int jj = 1; jj < Ntheta; jj++) { // don't repeat theta == pi/2
     for (int i = 0; i < NX; i++) {
@@ -497,22 +497,25 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
       F1_extd[ind]       = F1_extd[indsym];
       F2_extd[ind]       = F2_extd[indsym];
       F0_extd[ind]       = F0_extd[indsym];
-      H1r_extd[ind]      = H1r_extd[indsym];
       
       W_extd[ind]        = W_extd[indsym];
-      H3_extd[ind]       = H3_extd[indsym];
-      V_extd[ind]        = V_extd[indsym];
-
       dW_dr_extd[ind]    = dW_dr_extd[indsym];
-      dH3_dr_extd[ind]   = dH3_dr_extd[indsym];
-      dV_dr_extd[ind]    = dV_dr_extd[indsym];
-
+      
       // Odd
-      H2_extd[ind]          = - H2_extd[indsym];
-
       dW_dth_extd[ind]      = - dW_dth_extd[indsym];
-      dH3_dth_extd[ind]     = - dH3_dth_extd[indsym];
-      dV_dth_extd[ind]      = - dV_dth_extd[indsym];
+      
+      // Vector potential
+      
+      H1r_extd[ind]      = H1_z_sign * H1r_extd[indsym];
+      H2_extd[ind]       = H2_z_sign *  H2_extd[indsym];
+      H3_extd[ind]       = H3_z_sign *  H3_extd[indsym];
+      V_extd[ind]        =  V_z_sign *   V_extd[indsym];
+      
+      dH3_dr_extd[ind]   = H3_z_sign * dH3_dr_extd[indsym];
+      dV_dr_extd[ind]    =  V_z_sign *  dV_dr_extd[indsym];
+
+      dH3_dth_extd[ind]  = - H3_z_sign * dH3_dth_extd[indsym];
+      dV_dth_extd[ind]   = -  V_z_sign *  dV_dth_extd[indsym];
       
 
       } // for i

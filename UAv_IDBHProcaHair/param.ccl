@@ -36,6 +36,11 @@ STRING infilename "file to read the input data from" STEERABLE=RECOVER
   ".*"  ::  "any valid file name"
 } ""
 
+INT maxNF "maximum number of lines allowed in the input file"
+{
+ 100:* :: "any large enough integer"
+} 100000
+
 REAL C0 "parameter for R to X coordinate transformation"
 {
   (0:* :: "greater than zero"
@@ -46,16 +51,18 @@ INT Wbar_r_power "power p in Wbar = r^p * W. For now, p=0,1,2 to make sense with
   0:2 :: "0, 1 or 2"
 } 2 
 
-INT mm "azimuthal number of the solution. mm=0 for solutions with spherical symmetry, and mm=1,2,3 for current rotating solutions"
+INT mm "azimuthal number of the solution. mm=0 for non-rotating solutions, and mm=1,2,3 for current rotating solutions"
 {
   0:3 :: "0, 1, 2 or 3"
 } 0
 
-INT maxNF "maximum number of lines allowed in the input file"
+# Symmetry of the vector potential, with respect to the equatorial plane (initial data is provided for 0 <= theta <= pi/2).
+# We write A = exp{i(m phi - w t)} (H1 dr + H2 dtheta + i H3 sin(theta) dphi + i V dt).
+# A even (default): H1, H3 and V are even, and H2 is odd.
+# A odd           : H1, H3 and V are  odd, and H2 is even.
+BOOLEAN Amu_z_sym_is_odd "Parity of vector potential with respect to equatorial plane symmetry. So far, used only in ProcaBS."
 {
- 100:* :: "any large enough integer"
-} 100000
-
+} "no"
 
 REAL rH "Horizon radius parameter. Incompatible with the Proca Bosonic Star."
 {
