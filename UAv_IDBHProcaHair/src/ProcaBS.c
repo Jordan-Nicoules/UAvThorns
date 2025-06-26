@@ -21,30 +21,15 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
   DECLARE_CCTK_ARGUMENTS;
   DECLARE_CCTK_PARAMETERS;
 
-  /* 
-    TODO: Implement Proca star.
 
-    Proca Bosonic Star limit (rH=0) not implemented yet.
-    To do it, copy and adapt from UAv_IDBHScalarHair/src/ScalarBS.c
-    and UAv_IDBHProcaHair/src/BHProcaHair.c.
-    In the scalar case, just taking the BH routine with rH == 0 was not
-    correct in a few places, although on the few numerical tests performed 
-    it didn't seem too critical. Thus the dedicated separate routine.
-    This is probably the case here too, it needs to be checked and done properly.
-  */
-
-  // TODO: Put warning about rotating stars not being proof-tested yet
+  // WARNING: rotating stars not being proof-tested yet (output of warning in ParamCheck)
+  // TODO: Remove when proof-tested.
   // What needs to be checked if mostly the behavior/regularity of W and K_ij
-  if (mm>0) {
-    CCTK_WARN(1, "This code has not been proof-tested for rotating stars,");
-    CCTK_WARN(1, "in particular the good behavior of ansatz function W and extrinsic curvature K_ij.");
-    CCTK_WARN(1, "Use at your own risks!");
-  }
   
   // TODO: Remove this warning when the situation has been corrected.
-  CCTK_WARN(1, "This code relies on some symmetry assumptions for the equatorial plane");
-  CCTK_WARN(1, "which are known to fail in some cases (e.g. m=0 prolate star).");
-  CCTK_WARN(1, "Use at your own risks!");
+  CCTK_WARN(1,  "This code relies on some symmetry assumptions for the equatorial plane "
+                "which are known to fail in some cases (e.g. m=0 prolate star). "
+                "Use at your own risks!");
 
   // TODO: Is there a way to write the Proca fields in a regular way 
   //       (without 1/rr in particular, but also dealing with the axis...)
@@ -81,6 +66,14 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
   CCTK_VInfo(CCTK_THORNSTRING, "NX     = %d", NX);
   CCTK_VInfo(CCTK_THORNSTRING, "Ntheta = %d", Ntheta);
   CCTK_VInfo(CCTK_THORNSTRING, "NF     = %d", NF);
+
+  // Minimum number of theta points required by the FD stencils, and the j index assignment below
+  const CCTK_INT min_theta_pts = 5;
+  if (Ntheta<min_theta_pts){
+        CCTK_VERROR ("The initial data file doesn't have enough points in theta to be consistent with the implementation.\n "
+        "Ntheta = %d. min_theta_points = %d.",
+        Ntheta, min_theta_pts);
+  }
 
   // now we create arrays with the X and theta coordinates
   CCTK_REAL X[NX], theta[Ntheta];
@@ -170,105 +163,26 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
   for (int jj = 0; jj < Ntheta; jj++) {
     for (int i = 0; i < NX; i++) {
 
-      CCTK_INT j, jm1, jm2, jm3, jm4, jp1, jp2, jp3, jp4;
-      /* let's use the fact that the solution is axi-symmetric (and that
-         theta[0] = 0) for the boundary points in j 
-         WARNING: Be careful with symmetries, they may not apply everywhere!
-         
-         TODO: Put warning on the number of theta points?
-         For logic of cases below, Ntheta >= 9 I think, but in practice, what matters is probably Ntheta >= 5.
+      /* Theta symmetries
+        WARNING: Be careful with symmetries, they may not be valid for every quantity!
+        
+        Instead of spelling out the cases, use symmetry directly
+        theta = 0    (relevant for jm.): theta <-> -theta    i.e we need   max (theta, -theta)     = |theta|
+        theta = pi/2 (relevant for jp.): theta <-> pi-theta  i.e we need   min (theta, pi-theta)   = pi/2 - |pi/2 - theta|
+
+        /!\ Make sure that the rationale here is consistent with min_theta_points defined above.
       */
-      if (jj == 0) {
-        j   = jj;
-        jp1 = jj+1;
-        jp2 = jj+2;
-        jp3 = jj+3;
-        jp4 = jj+4;
-        jm1 = jj+1;
-        jm2 = jj+2;
-        jm3 = jj+3; // Shouldn't be needed/used here, but define just in case
-        jm4 = jj+4; // Shouldn't be needed/used here, but define just in case
-      } else if (jj == 1) {
-        j   = jj;
-        jp1 = jj+1;
-        jp2 = jj+2;
-        jp3 = jj+3;
-        jp4 = jj+4;
-        jm1 = jj-1;
-        jm2 = jj;
-        jm3 = jj+1; // Shouldn't be needed/used here, but define just in case
-        jm4 = jj+2; // Shouldn't be needed/used here, but define just in case
-      } else if (jj == 2) { // Special case shouldn't be needed here, but just in case
-        j   = jj;
-        jp1 = jj+1;
-        jp2 = jj+2;
-        jp3 = jj+3;
-        jp4 = jj+4;
-        jm1 = jj-1;
-        jm2 = jj-2;
-        jm3 = jj-1; // Shouldn't be needed/used here, but define just in case
-        jm4 = jj;   // Shouldn't be needed/used here, but define just in case
-      } else if (jj == 3) { // Special case shouldn't be needed here, but just in case
-        j   = jj;
-        jp1 = jj+1;
-        jp2 = jj+2;
-        jp3 = jj+3;
-        jp4 = jj+4;
-        jm1 = jj-1;
-        jm2 = jj-2;
-        jm3 = jj-3; // Shouldn't be needed/used here, but define just in case
-        jm4 = jj-2; // Shouldn't be needed/used here, but define just in case
-      } else if (jj == Ntheta - 4) { // Special case shouldn't be needed here, but just in case
-        j   = jj;
-        jm1 = jj-1;
-        jm2 = jj-2;
-        jm3 = jj-3;
-        jm4 = jj-4;
-        jp1 = jj+1;
-        jp2 = jj+2;
-        jp3 = jj+3; // Shouldn't be needed/used here, but define just in case
-        jp4 = jj+2; // Shouldn't be needed/used here, but define just in case 
-      } else if (jj == Ntheta - 3) { // Special case shouldn't be needed here, but just in case
-        j   = jj;
-        jm1 = jj-1;
-        jm2 = jj-2;
-        jm3 = jj-3;
-        jm4 = jj-4;
-        jp1 = jj+1;
-        jp2 = jj+2;
-        jp3 = jj+1; // Shouldn't be needed/used here, but define just in case
-        jp4 = jj;   // Shouldn't be needed/used here, but define just in case
-      } else if (jj == Ntheta - 2) {
-        j   = jj;
-        jm1 = jj-1;
-        jm2 = jj-2;
-        jm3 = jj-3;
-        jm4 = jj-4;
-        jp1 = jj+1;
-        jp2 = jj;
-        jp3 = jj-1; // Shouldn't be needed/used here, but define just in case
-        jp4 = jj-2; // Shouldn't be needed/used here, but define just in case
-      } else if (jj == Ntheta - 1) {
-        j   = jj;
-        jm1 = jj-1;
-        jm2 = jj-2;
-        jm3 = jj-3;
-        jm4 = jj-4;
-        jp1 = jj-1;
-        jp2 = jj-2;
-        jp3 = jj-3; // Shouldn't be needed/used here, but define just in case
-        jp4 = jj-4; // Shouldn't be needed/used here, but define just in case
-      } else {
-        j   = jj;
-        jp1 = jj+1;
-        jp2 = jj+2;
-        jp3 = jj+3; // Shouldn't be needed/used here, but define just in case
-        jp4 = jj+4; // Shouldn't be needed/used here, but define just in case
-        jm1 = jj-1;
-        jm2 = jj-2;
-        jm3 = jj-3; // Shouldn't be needed/used here, but define just in case
-        jm4 = jj-4; // Shouldn't be needed/used here, but define just in case
-      }
+      const CCTK_INT j   = jj;
+      const CCTK_INT jm1 = abs(jj-1);
+      const CCTK_INT jm2 = abs(jj-2);
+      const CCTK_INT jm3 = abs(jj-3);
+      const CCTK_INT jm4 = abs(jj-4);
+      const CCTK_INT jp1 = Ntheta - 1 - abs(Ntheta - 1 - (jj+1));
+      const CCTK_INT jp2 = Ntheta - 1 - abs(Ntheta - 1 - (jj+2));
+      const CCTK_INT jp3 = Ntheta - 1 - abs(Ntheta - 1 - (jj+3));
+      const CCTK_INT jp4 = Ntheta - 1 - abs(Ntheta - 1 - (jj+4));
+
+
 
       const CCTK_INT ind    = i + j*NX;
 
@@ -302,6 +216,11 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
       const CCTK_REAL lX = X[i];
       /* const CCTK_REAL lth = theta[j]; */
       /* printf("X[%3d] = %lf\n", i, lX); */
+
+
+      // Theta derivatives
+      // /!\ Make sure that the stencils here are consistent with min_theta_points defined above.
+
 
       // WARNING/TODO (rotating stars): Do we need to be careful of theta derivatives, like for V?
       // 1st derivative with 4th order accuracy (central stencils)
@@ -917,7 +836,7 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
           
 
         // lapse value (field initialization below)
-	// No lapse regularization needed for the BS, the lapse is non-zero
+        // No lapse regularization needed for the BS, the lapse is non-zero
         const CCTK_REAL alph = exp(F0[ind]);
 
 
@@ -988,8 +907,8 @@ void UAv_IDProcaBS(CCTK_ARGUMENTS)
           V / sinth ~ \pm dV/dth    for theta = 0, pi resp.
         */
         if (fabs(sinth) < 1e-8) {
-          // TODO: see if now we allow RR==0, how to deal with this
-          const CCTK_INT zsign = (costh>=0) ? 1 : -1; // costh==0 shouldn't happen on the axis for a grid point, this would mean RR==0 too...
+          // TODO: see how to deal with this if now we allow rr==0
+          const CCTK_INT zsign = (costh>=0) ? 1 : -1; // costh==0 shouldn't happen on the axis for a grid point, this would mean rr==0 too...
 
           E1d_ph_o_sinth = - (mm * zsign * dV_dth[ind] + omega_BS * H3[ind]) / alph * harm_re;
           E2d_ph_o_sinth = - (mm * zsign * dV_dth[ind] + omega_BS * H3[ind]) / alph * harm_im;

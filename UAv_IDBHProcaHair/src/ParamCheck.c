@@ -53,5 +53,13 @@ void UAv_IDBHProcaHair_ParamCheck(CCTK_ARGUMENTS){
       CCTK_PARAMWARN("Using 'initial_data = ProcaBS' with a non-zero 'rH' is not allowed. "
                    "Unset 'rH'.");
     }
+
+    // WARNING: Code has not been proof-tested yet with rotating stars.
+    // TODO: Remove when proof-tested.
+    if (mm>0) {
+      CCTK_WARN(1,  "This code has not been proof-tested for rotating stars, "
+                    "in particular the good behavior of ansatz function W and extrinsic curvature K_ij. "
+                    "Use at your own risks!");
+    }
   }
 }
