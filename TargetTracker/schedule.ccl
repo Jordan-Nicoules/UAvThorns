@@ -5,10 +5,21 @@ storage: is_active[1]
 storage: is_loc_from_surface[1]
 storage: is_opposite[1]
 storage: is_adjusted[1]
+storage: is_com_computed[1]
 storage: target_loc[1]
 storage: target_ids[1]
 storage: adj_fac[1]
 storage: adj_ori[1]
+
+storage: is_multipatch[1]
+storage: use_volume_form[1]
+storage: com_sym_factors[1]
+storage: com_counter[1]
+storage: unrestricted_com_highest_index[1]
+# Grid Function integrands for the center of mass
+storage: com_integrand[1]
+# Integrated quantities
+storage: target_com[1]
 
 schedule TargetTracker_ParamCheck AT ParamCheck
 {
@@ -30,12 +41,62 @@ schedule TargetTracker_Recovery at CCTK_POST_RECOVER_VARIABLES
   OPTIONS: global
 } "(Partial) recovery of parameters from checkpointed internal variables"
 
-# WARNING: schedule bin
+# Initialize flags for the center of mass calculation (multipatch, volume form, symmetry factors)
+schedule TargetTracker_InitializeComFlags at BASEGRID after MultiPatch_SpatialCoordinates
+{
+  LANG: C
+  OPTIONS: global
+} "Initialize quantities used in the center of mass calculation"
+
+###############################################################################
+# WARNING: schedule bins
+#
 # We schedule at ANALYSIS because Trigger_Check is scheduled at ANALYSIS.
 # This is relevant when Triggers are used to steer trackers, for instance
 # when a horizon is found, etc. (TargetTracker doesn't have native triggers).
+#
+# The center of mass group is scheduled before the tracking as global-early,
+# so that the CoM grid scalars can be tracked (by this thorn or others)
+# in the same pass.
+#
 # TODO: If adding schedule bin parameters to run at POSTSTEP, some thoughts
 # and checks need to go to the before/after conditions.
+###############################################################################
+
+# Center of mass
+
+schedule TargetTracker_ComSetupIteration at ANALYSIS after Trigger_Check before TargetTracker_SetSurfaces before CarpetLib_printtimestats
+{
+  LANG: C
+  OPTIONS: global-early
+} "Initialize the center of mass counter for this iteration"
+
+schedule GROUP TargetTracker_ComGroup AT ANALYSIS after TargetTracker_ComSetupIteration before TargetTracker_SetSurfaces before CarpetLib_printtimestats WHILE TargetTracker::com_counter
+{
+} "Compute the centers of mass of the matter distribution for all targets"
+
+schedule TargetTracker_ComIntegrand in TargetTracker_ComGroup
+{
+  LANG: C
+  OPTIONS: global-early loop-local
+  SYNC: com_integrand
+} "Compute the center of mass integrand grid functions for the current target"
+
+schedule TargetTracker_ComDoSum in TargetTracker_ComGroup after TargetTracker_ComIntegrand
+{
+  LANG: C
+  OPTIONS: global-early
+} "Reduce the center of mass integrands for the current target"
+
+schedule TargetTracker_ComDecrementCounter in TargetTracker_ComGroup after TargetTracker_ComDoSum
+{
+  LANG: C
+  OPTIONS: global-early
+} "Decrement the center of mass counter"
+
+
+# Set the tracked point coordinates (target_loc) and the surfaces
+
 schedule TargetTracker_SetSurfaces at ANALYSIS after Trigger_Check
 {
   LANG: C

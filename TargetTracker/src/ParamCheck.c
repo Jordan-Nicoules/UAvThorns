@@ -1,10 +1,49 @@
 #include <cctk.h>
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
+#include <cctk_Functions.h>
 
 void TargetTracker_ParamCheck(CCTK_ARGUMENTS) {
     DECLARE_CCTK_ARGUMENTS;
     DECLARE_CCTK_PARAMETERS;
+
+    // -------------------------------
+    // CENTER OF MASS CALCULATION
+    // -------------------------------
+
+    for (CCTK_INT itarget = 0; itarget < nmax_targets; itarget++) {
+        // Check non-empty shell
+        if (com_compute_outside_radius[itarget] > 0 && com_compute_inside_radius[itarget] > 0
+            && com_compute_outside_radius[itarget] >= com_compute_inside_radius[itarget]) {
+            CCTK_VPARAMWARN("For tracker %d, 'com_compute_outside_radius' >= 'com_compute_inside_radius' > 0: the restricted integration region (a spherical shell) is empty.", itarget);
+        }
+    }
+
+    // For multipatch / Llama grids, we need the volume form computed in Coordinates.
+    // This is activated by the parameter Coordinates::store_volume_form = yes.
+
+    // Trick to check multipatch usage without having to inherit the thorn
+    if( CCTK_IsFunctionAliased("MultiPatch_GetDomainSpecification") ) {
+
+        // -1 is the "error" return value of ParameterGetType() (see the flesh)
+        CCTK_INT type = -1;
+        const CCTK_INT* store_volume_form_ptr = CCTK_ParameterGet("store_volume_form", "Coordinates", &type);
+
+        if (store_volume_form_ptr == NULL || type != PARAMETER_BOOLEAN) {
+            CCTK_ERROR("Problem acquiring pointer to Coordinates::store_volume_form parameter.");
+        }
+        else if (!(*store_volume_form_ptr)) {
+            CCTK_VPARAMWARN("You are using a multipatch system, and the center of mass is computed, but you set Coordinates::store_volume_form = no. "
+                            "TargetTracker will not be able to use the volume form for the integration. "
+                            "Please set Coordinates::store_volume_form = yes.");
+        }
+        // else, we're good to go
+    }
+
+
+    // -------------------------------
+    // TRACKING
+    // -------------------------------
 
     for (CCTK_INT itarget = 0; itarget < nmax_targets; itarget++) {
         
@@ -25,10 +64,9 @@ void TargetTracker_ParamCheck(CCTK_ARGUMENTS) {
         // --------------------------------
         // CHECK TARGET VARIABLES
         // --------------------------------
-        CCTK_INT index;
         // x
-        index = CCTK_VarIndex (target_x[itarget]);
         if (!CCTK_Equals(target_x[itarget], "")) {
+            const CCTK_INT index = CCTK_VarIndex (target_x[itarget]);
             if (index < 0) {
                 CCTK_VPARAMWARN("Could not get index of target %d x variable: %s.", itarget, target_x[itarget]);
             }
@@ -37,8 +75,8 @@ void TargetTracker_ParamCheck(CCTK_ARGUMENTS) {
             }
         }
         // y
-        index = CCTK_VarIndex (target_y[itarget]);
         if (!CCTK_Equals(target_y[itarget], "")) {
+            const CCTK_INT index = CCTK_VarIndex (target_y[itarget]);
             if (index < 0) {
                 CCTK_VPARAMWARN("Could not get index of target %d y variable: %s.", itarget, target_y[itarget]);
             }
@@ -47,8 +85,8 @@ void TargetTracker_ParamCheck(CCTK_ARGUMENTS) {
             }
         }
         // z
-        index = CCTK_VarIndex (target_z[itarget]);
         if (!CCTK_Equals(target_z[itarget], "")) {
+            const CCTK_INT index = CCTK_VarIndex (target_z[itarget]);
             if (index < 0) {
                 CCTK_VPARAMWARN("Could not get index of target %d z variable: %s.", itarget, target_z[itarget]);
             }

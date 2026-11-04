@@ -94,6 +94,40 @@ REAL stop_tracking_after_time[10] "Stop tracking after the given time" STEERABLE
   *:* :: "after this time (exclusively)"
 } 1e+99
 
+# Self-contained calculation of the center of mass of the matter distribution
+# (see the documentation)
+
+BOOLEAN compute_com[10] "Compute the center of mass of the matter distribution for this target (from the stress-energy tensor). The result is stored in the grid scalars 'target_com_x/y/z'. The calculation is restricted to a spherical domain around the tracked point if 'com_compute_inside_radius' and/or 'com_compute_outside_radius' are set." STEERABLE=ALWAYS
+{
+} "no"
+
+REAL com_compute_inside_radius[10] "Restrict the center of mass integration to the INSIDE of a sphere of this radius, centered at the tracked point. Negative (in practice, set to -1) disables the restriction." STEERABLE=RECOVER
+{
+  -1:* :: "negative or zero disables; positive is the radius"
+} -1.0
+
+REAL com_compute_outside_radius[10] "Restrict the center of mass integration to the OUTSIDE of a sphere of this radius, centered at the tracked point. Setting both radii integrates in a spherical shell. Negative (in practice, set to -1) disables the restriction." STEERABLE=RECOVER
+{
+  -1:* :: "negative or zero disables; positive is the radius"
+} -1.0
+
+INT com_every[10] "Do the center of mass calculation every N iterations. Use parameter 'compute_com' to (de)activate computation." STEERABLE=RECOVER
+{
+  1:* :: "Any positive integer"
+} 1
+
+BOOLEAN excise_horizon "excise the region inside the AH from the center of mass integration? Requires AHFinderDirect (or a similar thorn setting the mask with the 'outside' state of type 'mask')." STEERABLE=RECOVER
+{
+} "no"
+
+KEYWORD com_symmetry "Symmetry type of the center of mass integrands, in order to multiply by the correct factor." STEERABLE=RECOVER
+{
+  "none"     :: "no symmetry"
+  "bitant_x" :: "bitant even symmetry across x=0 plane"
+  "bitant_y" :: "bitant even symmetry across y=0 plane"
+  "bitant_z" :: "bitant even symmetry across z=0 plane"
+} "none"
+
 INT which_surface_to_store_info[10] "A spherical surface index where we can store the target location. Make sure you have created the surface!" STEERABLE=RECOVER
 {
   -1  :: "don't store target location"
