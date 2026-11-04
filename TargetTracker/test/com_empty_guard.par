@@ -5,6 +5,11 @@
 # must keep the previous values (the initial ones) and print a warning, instead
 # of dividing by zero or producing NaNs.
 
+### TODO: In a way it's worse than an empty aka vacuum region, here it's an empty set region.
+###       I guess it still technically tests that pipeline, but something more interesting
+###       would be to have a volume with matter, and then later on no matter anymore (or no grid points).
+###       Sure in this version it keeps the previous value, but nothing is changing anyway.
+
 ActiveThorns = "
   ADMBase
   ADMMacros
@@ -141,7 +146,6 @@ TargetTracker::initial_x                      [0] = 100.0
 TargetTracker::initial_y                      [0] = 0.0
 TargetTracker::initial_z                      [0] = 0.0
 TargetTracker::com_compute_inside_radius      [0] = 1.0
-TargetTracker::com_every                      [0] = 1
 
 TargetTracker::com_symmetry                        = "none"
 TargetTracker::verbose                             = yes

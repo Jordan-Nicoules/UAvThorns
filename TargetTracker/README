@@ -199,6 +199,19 @@ See the discussion in `TODO.md` for details.
 Tests
 -----
 
+> TODO: See TODOs in individual test parameter files
+
+> Generically, some tests are not really relevant with fixed targets, it would be better to have them with moving targets
+
+> Tests (preferably with moving targets) for the following features are still missing (can be grouped or added to existing tests):
+> - steerability of `track`
+> - steerability of `target_*` (changing to "fixed", changing to another valid grid scalar, changing to invalid targets),
+> - steerability of `loc_from_surface_mode`.
+> - self tracking of a restricted CoM
+> - `com_every` > 1, and `track_every` > 1
+> - `excise_horizon` 
+> - recovery from checkpoint, `force_params_at_recovery` (I suppose the checkpoint needs to be given to the testsuite)
+
 A small testsuite is provided in `test/` (run with e.g.
 `make <config>-testsuite`). It uses standard ET thorns plus the matter scalar
 field of `Scalar/Scalar*` on a flat background, so that the expected values are
@@ -210,7 +223,7 @@ known analytically:
     tracking the opposite (`track_opposite`) of a target.
   - `track_surface_roundtrip`: 'surface to tracker' mode reading a location
     back from a surface.
-  - `track_timing`: `start_tracking_after_time` (and `track_every`).
+  - `track_timing`: `start_tracking_after_time` and `stop_tracking_after_time` (and `track_every`).
   - `com_restrict_identity`: the volume-restriction identities
     `inside + outside == global` and
     `inside(r1) + shell(r1,r2] == inside(r2)`, checked to machine precision by
@@ -254,3 +267,4 @@ Known limitations
     (even a plain `ScalarEvolve` run, with this thorn disabled) aborts in
     `CarpetIOHDF5::Recover` (a `CarpetLib` timelevel assertion), i.e. a
     pre-existing driver issue rather than a TargetTracker one.
+    > TODO. Not sure what problem the agent encountered, but I doubt there are bugs on this.

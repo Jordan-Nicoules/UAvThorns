@@ -4,6 +4,8 @@
 # adjustment loc = 2*target + 1 (x only), giving x=7. Target 2 tracks the
 # opposite of target 0, giving x=-3.
 
+### TODO: That's cool but a better check would be with something that actually moves.
+
 ActiveThorns = "
   ADMBase
   ADMMacros
