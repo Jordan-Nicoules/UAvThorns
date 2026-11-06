@@ -74,16 +74,6 @@ tracking the mirror of a puncture in a symmetry run):
     loc = factor * target + origin, for each direction independently.
     A fixed dimension (empty target name) is not adjusted.
 
-All these parameters are STEERABLE=ALWAYS, and can be steered at
-runtime (e.g. with the `Trigger` thorn). The interface quantities
-(`target_loc`, `adj_fac`, `adj_ori`) and the relevant internal flags
-are recovered from checkpoints; most other parameters are STEERABLE=RECOVER
-and taken from the parameter file at recovery. In case of ambiguity at
-recovery (a parameter changed during the run and reused identically, or
-a user-modified parameter file), the internal values are recovered and
-the parameters reset to them, with warnings; `force_params_at_recovery[i] = yes`
-reverses this for target i (see the caveats in param.ccl).
-
 
 Self-contained center of mass
 -----------------------------
@@ -117,7 +107,10 @@ inside + outside integrals add up to the global one. This is useful
 in particular for tracking local lumps of matter independently (e.g.
 in binary systems), and the sphere moves with the tracker.
 
-The integrands are computed on all refinement levels at once (a single
+If the total center of mass is requested more than once at a given iteration,
+the values are recycled from the first computation.
+
+The integrands are computed on all refinement levels (a single
 set of grid functions is recomputed and reduced sequentially for each
 target, in the spirit of `VolumeIntegrals_GRMHD`), and reduced with the
 driver's sum reduction, which handles mesh refinement. The following
@@ -135,9 +128,9 @@ global parameters control the calculation:
     (SpaceMask type "mask", state "outside").
 
   - `com_symmetry`: multiply the integrands by the appropriate factors
-    for bitant runs ("none", "bitant_x/y/z"). "none" can be used even
-    when the grid has symmetries, but it is then up to the user to
-    tackle the symmetry factors.
+    for runs with symmetries ("none", "bitant_x/y/z", ...). 
+    "none" can be used even when the grid has symmetries, but it is 
+    then up to the user to tackle the symmetry factors.
 
 If the mass integral vanishes (e.g. an empty sphere), the previous
 values are kept and a warning printed (the calculation becomes trivially
@@ -150,11 +143,34 @@ output. The reduction follows the driver's weights (in particular,
 half-weighting grid layers on symmetry planes, as required to normalize
 symmetric integrals).
 
+Steerability
+------------
+
+The following control parameters are STEERABLE=ALWAYS and can be steered
+at runtime (e.g. with the `Trigger` thorn):
+
+  - `track[i]`: whether to track target i
+  - `target_x/y/z[i]`: the grid scalars to track for target i (empty = fixed)
+  - `loc_from_surface_mode[i]`: whether to copy the centroid of the associated surface into the tracker
+  - `track_opposite[i]`: whether to track the opposite of the target
+  - `tracker_adjust[i]`: whether to apply an affine adjustment to the tracked location
+  - `compute_com[i]`: whether to compute the center of mass for target i
+  - `verbose`: whether to print information about the tracking and CoM computation
+
+Internal flags are set accordingly, so that their values can be recovered
+from checkpoints. If the recovered value conflicts with the parameter file, the internal value is used and a warning is printed.
+Use `force_params_at_recovery[i] = yes` to override this behavior for target i.
+
+Other parameters are STEERABLE=RECOVER and taken from the parameter file at recovery.
+See `param.ccl` and `src/Initialize.c` for details.
+
+> WARNING: It seems that commenting a parameter at recovery will keep the value from the checkpoint (e.g. for stop_tracking_after_time).
+> This is Cactus behavior, not this thorn.
 
 Schedule placement
 ------------------
 
-The thorn runs at ANALYSIS (as does e.g. `Trigger_Check`, which runs before it).
+The thorn runs at ANALYSIS so that it can run after `Trigger_Check`.
 The center of mass group is scheduled as `global-early`, and therefore runs
 before the tracking: the grid scalars it produces can be tracked in the same
 pass (by this thorn or others). Note the one-pass lag for a *self-tracking*
@@ -174,9 +190,27 @@ and `CCTK_POST_RECOVER_VARIABLES` (initialization, recovery),
 `CCTK_INITIAL`/`CCTK_POST_RECOVER_VARIABLES` (counter safety),
 `BASEGRID` (flags for the CoM: multipatch detection, symmetry factors).
 
+**TODO/IN PROGRESS:**
+Management of `sf_active` and `sf_valid` flags, and possible modifications
+to the schedule placement because of it.
+See the discussion in `TODO.md` for details.
+
 
 Tests
 -----
+
+> TODO: See TODOs in individual test parameter files
+
+> Generically, some tests are not really relevant with fixed targets, it would be better to have them with moving targets
+
+> Tests (preferably with moving targets) for the following features are still missing (can be grouped or added to existing tests):
+> - steerability of `track`
+> - steerability of `target_*` (changing to "fixed", changing to another valid grid scalar, changing to invalid targets),
+> - steerability of `loc_from_surface_mode`.
+> - self tracking of a restricted CoM
+> - `com_every` > 1, and `track_every` > 1
+> - `excise_horizon` 
+> - recovery from checkpoint, `force_params_at_recovery` (I suppose the checkpoint needs to be given to the testsuite)
 
 A small testsuite is provided in `test/` (run with e.g.
 `make <config>-testsuite`). It uses standard ET thorns plus the matter scalar
@@ -189,7 +223,7 @@ known analytically:
     tracking the opposite (`track_opposite`) of a target.
   - `track_surface_roundtrip`: 'surface to tracker' mode reading a location
     back from a surface.
-  - `track_timing`: `start_tracking_after_time` (and `track_every`).
+  - `track_timing`: `start_tracking_after_time` and `stop_tracking_after_time` (and `track_every`).
   - `com_restrict_identity`: the volume-restriction identities
     `inside + outside == global` and
     `inside(r1) + shell(r1,r2] == inside(r2)`, checked to machine precision by
@@ -210,7 +244,7 @@ Known limitations
   - 10 targets maximum (crutch parameter `nmax_targets`).
 
   - The thorn is scheduled at ANALYSIS only (no POSTSTEP option as of
-    yet; see the TODO in schedule.ccl).
+    yet; see schedule.ccl and TODO.md).
 
   - The CoM restriction is a sphere centered at the tracked point; the
     radius is a fixed constant parameter (in particular it does not follow a
@@ -233,3 +267,4 @@ Known limitations
     (even a plain `ScalarEvolve` run, with this thorn disabled) aborts in
     `CarpetIOHDF5::Recover` (a `CarpetLib` timelevel assertion), i.e. a
     pre-existing driver issue rather than a TargetTracker one.
+    > TODO. Not sure what problem the agent encountered, but I doubt there are bugs on this.

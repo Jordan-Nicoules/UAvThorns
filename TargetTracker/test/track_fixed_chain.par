@@ -112,6 +112,8 @@ SphericalSurface::nphi                [0] = 20
 SphericalSurface::nghoststheta        [0] = 2
 SphericalSurface::nghostsphi          [0] = 2
 
+### TODO: Is the second surface here really needed? It's not used and yields NaNs in the output.
+###       I guess it just checks that tracker 1 does not write to surface 1 indeed
 SphericalSurface::ntheta              [1] = 10
 SphericalSurface::nphi                [1] = 20
 SphericalSurface::nghoststheta        [1] = 2

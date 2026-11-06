@@ -5,6 +5,11 @@
 # surface 0's centroid. After the first tracking pass, target 1 should equal
 # (2,0,0).
 
+### TODO: That's cool but a better check would be with something that actually moves.
+###       Either something else moves the surface and we need only one tracker.
+###       or the first tracker moves, sets a surface, and the second tracker reads it back.
+###       This can be combined with steerability of `loc_from_surface_mode`.
+
 ActiveThorns = "
   ADMBase
   ADMMacros
